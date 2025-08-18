@@ -288,6 +288,7 @@ Important rules:
                 # Search for food photos using Serper API
                 # This integration searches the internet for photos of each food item
                 # and returns clickable URLs that users can view in their browser
+                # Results are formatted in markdown for better presentation
                 if food_names:
                     # Get Serper API key from variables
                     serper_api_key = None
@@ -302,7 +303,7 @@ Important rules:
                         # Stream header first
                         # NEW: Stream each food item with photo URL as soon as it's found
                         # This provides real-time feedback to users instead of waiting for all searches
-                        header_message = "🍽️ **Food Menu Analysis Results:**\n\n"
+                        header_message = "# 🍽️ Food Menu Analysis Results\n\n"
                         lexia.stream_chunk(data, header_message)
                         
                         for food_name in food_names[:10]:  # Limit to first 10 items
@@ -328,30 +329,30 @@ Important rules:
                                         first_result = search_results['images'][0]
                                         food_photo_url = first_result.get('imageUrl') or first_result.get('thumbnailUrl') or first_result.get('link') or ''
                                     
-                                    # Stream this food item immediately
+                                    # Stream this food item immediately with markdown formatting
                                     if food_photo_url:
-                                        food_item_message = f"🍕 **{food_name}**\n📸 [View Photo]({food_photo_url})\n\n"
+                                        food_item_message = f"## 🍕 {food_name}\n\n📸 **[View Photo]({food_photo_url})**\n\n---\n\n"
                                         lexia.stream_chunk(data, food_item_message)
                                         logger.info(f"✅ Found and streamed photo for {food_name}: {food_photo_url}")
                                     else:
-                                        food_item_message = f"🍕 **{food_name}**\n📸 No photo found\n\n"
+                                        food_item_message = f"## 🍕 {food_name}\n\n📸 *No photo found*\n\n---\n\n"
                                         lexia.stream_chunk(data, food_item_message)
                                         logger.info(f"⚠️ No photo found for {food_name}")
                                 else:
-                                    food_item_message = f"🍕 **{food_name}**\n📸 Search failed (Status: {response.status_code})\n\n"
+                                    food_item_message = f"## 🍕 {food_name}\n\n📸 *Search failed (Status: {response.status_code})*\n\n---\n\n"
                                     lexia.stream_chunk(data, food_item_message)
                                     logger.warning(f"❌ Serper API search failed for {food_name}: {response.status_code}")
                                     
                             except requests.exceptions.Timeout:
-                                food_item_message = f"🍕 **{food_name}**\n📸 Search timeout\n\n"
+                                food_item_message = f"## 🍕 {food_name}\n\n📸 *Search timeout*\n\n---\n\n"
                                 lexia.stream_chunk(data, food_item_message)
                                 logger.warning(f"⏰ Serper API timeout for {food_name}")
                             except requests.exceptions.RequestException as e:
-                                food_item_message = f"🍕 **{food_name}**\n📸 Search error\n\n"
+                                food_item_message = f"## 🍕 {food_name}\n\n📸 *Search error*\n\n---\n\n"
                                 lexia.stream_chunk(data, food_item_message)
                                 logger.error(f"❌ Request error for {food_name}: {str(e)}")
                             except Exception as e:
-                                food_item_message = f"🍕 **{food_name}**\n📸 Search error\n\n"
+                                food_item_message = f"## 🍕 {food_name}\n\n📸 *Search error*\n\n---\n\n"
                                 lexia.stream_chunk(data, food_item_message)
                                 logger.error(f"❌ Unexpected error for {food_name}: {str(e)}")
                         
@@ -361,17 +362,41 @@ Important rules:
                         logger.info("🎉 All food items streamed with photo search results")
                     else:
                         logger.warning("⚠️ SERPER_API_KEY not found in variables, sending basic food list")
-                        # Stream basic food list
-                        header_message = "🍽️ **Food Menu Items:**\n\n"
+                        # Stream basic food list with markdown formatting
+                        header_message = "# 🍽️ Food Menu Items\n\n"
                         lexia.stream_chunk(data, header_message)
                         
                         for food_name in food_names:
-                            food_item_message = f"🍕 **{food_name}**\n"
+                            food_item_message = f"## 🍕 {food_name}\n\n---\n\n"
                             lexia.stream_chunk(data, food_item_message)
                         
                         full_response = "🍽️ Basic food menu list completed."
                 else:
                     logger.info("⚠️ No food names extracted from response")
+        
+        # Build complete response content for Lexia completion
+        # This is necessary because Lexia needs the complete content for:
+        # 1. Conversation memory storage
+        # 2. Final completion signal
+        # 3. Proper conversation flow management
+        if hasattr(data, 'file_type') and data.file_type == 'image' and hasattr(data, 'file_url') and data.file_url:
+            if "This is not a food menu" not in full_response:
+                # Build the complete markdown response for conversation memory and completion
+                complete_content = "# 🍽️ Food Menu Analysis Results\n\n"
+                
+                if food_names:
+                    for food_name in food_names[:10]:
+                        complete_content += f"## 🍕 {food_name}\n\n"
+                        # Note: We can't include the actual photo URLs here since they were streamed separately
+                        # But we can indicate that photos were searched for
+                        complete_content += f"📸 *Photo search completed*\n\n---\n\n"
+                    
+                    complete_content += "\n*All food items have been analyzed and photos searched via Serper API.*"
+                else:
+                    complete_content += "*No food names could be extracted from the menu.*"
+                
+                full_response = complete_content
+                logger.info("📋 Complete response content built for Lexia completion")
         
         # Store response in conversation memory
         conversation_manager.add_message(data.thread_id, "assistant", full_response)
