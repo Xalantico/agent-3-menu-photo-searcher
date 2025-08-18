@@ -336,8 +336,10 @@ Important rules:
                                     # Stream this food item immediately with markdown formatting
                                     # Now displays the actual photo URL instead of "View Photo" text
                                     # Uses markdown image syntax ![alt text](URL) for inline image display in Lexia
+                                    # Also includes clickable link to open image in new tab
+                                    # This provides both visual preview and clickable functionality
                                     if food_photo_url:
-                                        food_item_message = f"## 🍕 {food_name}\n\n📸 ![{food_name}]({food_photo_url})\n\n---\n\n"
+                                        food_item_message = f"## 🍕 {food_name}\n\n📸 ![{food_name}]({food_photo_url})\n\n🔗 **[Click to open in new tab]({food_photo_url})**\n\n---\n\n"
                                         lexia.stream_chunk(data, food_item_message)
                                         collected_food_results.append({"name": food_name, "url": food_photo_url, "status": "ok"})
                                         logger.info(f"✅ Found and streamed photo for {food_name}: {food_photo_url}")
@@ -403,7 +405,7 @@ Important rules:
                         status = item.get("status")
                         complete_content += f"## 🍕 {name}\n\n"
                         if url:
-                            complete_content += f"📸 ![{name}]({url})\n\n---\n\n"
+                            complete_content += f"📸 ![{name}]({url})\n\n🔗 **[Click to open in new tab]({url})**\n\n---\n\n"
                         else:
                             # Map statuses to messages
                             status_msg = "*No photo found*" if status in ["no_photo", "no_key"] else "*Search error*"
