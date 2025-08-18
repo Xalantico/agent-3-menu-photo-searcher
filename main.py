@@ -388,6 +388,12 @@ Important rules:
                         full_response = "🍽️ Basic food menu list completed."
                 else:
                     logger.info("⚠️ No food names extracted from response")
+            else:
+                # Not a food menu: stream the exact message immediately
+                clean_msg = full_response.strip()
+                if clean_msg:
+                    lexia.stream_chunk(data, clean_msg + "\n")
+                    logger.info("🚫 Not a food menu message streamed")
         
         # Build complete response content for Lexia completion
         # This is necessary because Lexia needs the complete content for:
