@@ -251,8 +251,6 @@ Important rules:
                 logger.info("🍽️ Food menu detected, searching for food photos...")
                 
                 # Extract food names from the response
-                # FIXED: Previously excluded lines starting with '-', '•', '*' which are the actual food names
-                # Now properly processes all lines and removes list markers to extract food names
                 food_names = []
                 lines = full_response.strip().split('\n')
                 logger.info(f"🔍 Processing {len(lines)} lines from OpenAI response")
@@ -289,9 +287,6 @@ Important rules:
                 logger.info(f"🍕 Extracted food names: {food_names}")
                 
                 # Search for food photos using Serper API
-                # This integration searches the internet for photos of each food item
-                # and returns clickable URLs that users can view in their browser
-                # Results are formatted in markdown for better presentation
                 if food_names:
                     collected_food_results = []
                     # Get Serper API key from variables
@@ -305,8 +300,7 @@ Important rules:
                         logger.info("🔍 Using Serper API to search for food photos...")
                         
                         # Stream header first
-                        # NEW: Stream each food item with photo URL as soon as it's found
-                        # This provides real-time feedback to users instead of waiting for all searches
+                        # Stream each food item with photo URL as soon as it's found
                         header_message = "# 🍽️ Food Menu Analysis Results\n\n"
                         lexia.stream_chunk(data, header_message)
                         
@@ -334,7 +328,6 @@ Important rules:
                                         food_photo_url = first_result.get('imageUrl') or first_result.get('thumbnailUrl') or first_result.get('link') or ''
                                     
                                     # Stream this food item immediately with markdown formatting
-                                    # Now displays the actual photo URL instead of "View Photo" text
                                     # Uses markdown image syntax ![alt text](URL) for inline image display in Lexia
                                     # Also includes clickable link to open image in new tab
                                     # This provides both visual preview and clickable functionality
@@ -396,10 +389,7 @@ Important rules:
                     logger.info("🚫 Not a food menu message streamed")
         
         # Build complete response content for Lexia completion
-        # This is necessary because Lexia needs the complete content for:
-        # 1. Conversation memory storage
-        # 2. Final completion signal
-        # 3. Proper conversation flow management
+        # Lexia needs complete content for memory storage and completion signal
         if hasattr(data, 'file_type') and data.file_type == 'image' and hasattr(data, 'file_url') and data.file_url:
             if "This is not a food menu" not in full_response:
                 # Build the complete markdown response including URLs where available
